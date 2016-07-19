@@ -646,6 +646,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             log.info("the consumer [{}] start beginning. messageModel={}, isUnitMode={}",
                 this.defaultMQPushConsumer.getConsumerGroup(), this.defaultMQPushConsumer.getMessageModel(),
                 this.defaultMQPushConsumer.isUnitMode());
+
             this.serviceState = ServiceState.START_FAILED;
 
             this.checkConfig();

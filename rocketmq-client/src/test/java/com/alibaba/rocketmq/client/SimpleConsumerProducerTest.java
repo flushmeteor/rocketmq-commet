@@ -45,6 +45,7 @@ public class SimpleConsumerProducerTest {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("S_fundmng_demo_producer");
         DefaultMQProducer producer = new DefaultMQProducer("P_fundmng_demo_producer");
 
+
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(TOPIC_TEST, null);
 
