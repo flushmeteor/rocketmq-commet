@@ -51,6 +51,10 @@ public abstract class NettyRemotingAbstract {
 
     protected final Semaphore semaphoreAsync;
 
+    /**
+     * 异步调用的响应信息
+     * 发送请求之前构造好，放入map，等待对端返回结果
+     */
     protected final ConcurrentHashMap<Integer /* opaque */, ResponseFuture> responseTable =
             new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
@@ -264,6 +268,8 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * 处理Response命令
+     * 如果是对端返回的数据，则执行这个方法，
+     * 找到对应的ResponseFuture，然后执行其Callback方法或者设置Response内容
      *
      * @param ctx
      * @param cmd
@@ -361,7 +367,7 @@ public abstract class NettyRemotingAbstract {
 
 
     /**
-     * 处理Response，如果超时则移除，同事触发Response中的回调
+     * 处理ResponseTable，如果超时则移除，同事触发Response中的回调。没有超时则继续等待
      */
     public void scanResponseTable() {
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
@@ -477,7 +483,7 @@ public abstract class NettyRemotingAbstract {
         if (acquired) {
 
             /**
-             * 资源释放，保证semaphoreAsync只释放一次
+             * 构造资源释放器，保证semaphoreAsync只释放一次
              */
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
 
@@ -485,6 +491,9 @@ public abstract class NettyRemotingAbstract {
              * 构造response，放入responseTable,异步请求，所以需要设置Callback
              */
             final ResponseFuture responseFuture = new ResponseFuture(request.getOpaque(), timeoutMillis, invokeCallback, once);
+            /**
+             * 把ResponseFuture放入table,等待对端返回结果
+             */
             this.responseTable.put(request.getOpaque(), responseFuture);
 
 
@@ -492,14 +501,20 @@ public abstract class NettyRemotingAbstract {
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
+                        /**
+                         * 发送成功，设置状态
+                         */
                         if (f.isSuccess()) {
                             responseFuture.setSendRequestOK(true);
                         } else {
+
+                            /**
+                             * 发送请求失败，则不等待对端返回，直接执行回调
+                             */
                             responseFuture.setSendRequestOK(false);
                             responseFuture.putResponse(null);
 
                             responseTable.remove(request.getOpaque());
-
 
                             try {
                                 /**
