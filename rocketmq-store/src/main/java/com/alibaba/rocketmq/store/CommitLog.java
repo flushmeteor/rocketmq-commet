@@ -53,8 +53,17 @@ public class CommitLog {
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
     private final MapedFileQueue mapedFileQueue;
     private final DefaultMessageStore defaultMessageStore;
+
+    /**
+     * 刷盘服务
+     */
     private final FlushCommitLogService flushCommitLogService;
+
     private final AppendMessageCallback appendMessageCallback;
+
+    /**
+     * 存储 topic-queueid与offset对应关系
+     */
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
 
 
@@ -488,7 +497,12 @@ public class CommitLog {
         return false;
     }
 
-
+    /**
+     * 向CommitLog中添加消息
+     *
+     * @param msg
+     * @return
+     */
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -503,6 +517,9 @@ public class CommitLog {
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
 
+        /**
+         *
+         */
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TransactionNotType//
                 || tranType == MessageSysFlag.TransactionCommitType) {
@@ -542,19 +559,28 @@ public class CommitLog {
                 log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
+
+
+            /**
+             * 真正写入消息
+             * 写入消息是在appendMessageCallback中完成
+             */
             result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
                 case END_OF_FILE:
                     // Create a new file, re-write the message
                     mapedFile = this.mapedFileQueue.getLastMapedFile();
+
                     if (null == mapedFile) {
                         // XXX: warn and notify me
                         log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                     }
                     result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
@@ -682,8 +708,15 @@ public class CommitLog {
 
     public SelectMapedBufferResult getMessage(final long offset, final int size) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        /**
+         * 先找到offset所在的文件
+         */
         MapedFile mapedFile = this.mapedFileQueue.findMapedFileByOffset(offset, (0 == offset ? true : false));
         if (mapedFile != null) {
+
+            /**
+             * 计算出消息在文件中的相对位置
+             */
             int pos = (int) (offset % mapedFileSize);
             SelectMapedBufferResult result = mapedFile.selectMapedBuffer(pos, size);
             return result;
@@ -972,16 +1005,37 @@ public class CommitLog {
         }
 
 
+        /**
+         * 写消息
+         *
+         * @param fileFromOffset 文件偏移位置
+         * @param byteBuffer
+         * @param maxBlank
+         * @param msg
+         * @return
+         */
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final Object msg) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
+
+            /**
+             * 物理Offset
+             */
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
+
+            /**
+             * 创建消息ID
+             */
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
+            /**
+             * ConsumerQueue信息
+             */
             // Record ConsumeQueue information
             String key = msgInner.getTopic() + "-" + msgInner.getQueueId();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
+
             if (null == queueOffset) {
                 queueOffset = 0L;
                 CommitLog.this.topicQueueTable.put(key, queueOffset);
@@ -1003,6 +1057,7 @@ public class CommitLog {
             }
 
             /**
+             * 序列化消息
              * Serialize message
              */
             final byte[] propertiesData =
@@ -1012,13 +1067,17 @@ public class CommitLog {
                 return new AppendMessageResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED);
             }
 
+            // 消息属性长度
             final short propertiesLength = propertiesData == null ? 0 : (short) propertiesData.length;
 
             final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-            final int topicLength = topicData == null ? 0 : topicData.length;
 
+            //Topic长度
+            final int topicLength = topicData == null ? 0 : topicData.length;
+            //消息内容长度
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
+            // 消息总长度
             final int msgLen = calMsgLength(bodyLength, topicLength, propertiesLength);
 
             // Exceeds the maximum message
@@ -1038,8 +1097,12 @@ public class CommitLog {
                 // 3 The remaining space may be any value
                 //
 
+                /**
+                 * 数据写入commitlog在内存中的byteBuffer
+                 */
                 // Here the length of the specially set maxBlank
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
+
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId, msgInner.getStoreTimestamp(),
                         queueOffset);
             }
@@ -1086,8 +1149,12 @@ public class CommitLog {
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
+            /**
+             * 数据写入commitlog在内存中的byteBuffer
+             */
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
+
 
             AppendMessageResult result =
                     new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId, msgInner.getStoreTimestamp(),
@@ -1100,6 +1167,9 @@ public class CommitLog {
                 case MessageSysFlag.TransactionNotType:
                 case MessageSysFlag.TransactionCommitType:
                     // The next update ConsumeQueue information
+                    /**
+                     * 更新ConsumerQueue信息
+                     */
                     CommitLog.this.topicQueueTable.put(key, ++queueOffset);
                     break;
                 default:

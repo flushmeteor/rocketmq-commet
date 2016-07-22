@@ -87,6 +87,14 @@ public class MixAll {
     }
 
 
+    /**
+     * Broker VIP Channel
+     * <p>
+     * 地址不变，端口号-2
+     *
+     * @param brokerAddr
+     * @return
+     */
     public static String brokerVIPChannel(final String brokerAddr) {
         String[] ipAndPort = brokerAddr.split(":");
         String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
@@ -411,6 +419,7 @@ public class MixAll {
 
     /**
      * 把target的值设置成value的值，如果value比target大的话，如果value值比targe小，则不设置
+     *
      * @param target
      * @param value
      * @return

@@ -189,6 +189,10 @@ public class MQClientInstance {
                     // Start rebalance service
                     this.rebalanceService.start();
 
+                    /**
+                     * 为什么消费者端也要启动一个Producer？
+                     * 因为当消费失败的时候，需要把消息发回去
+                     */
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
 
@@ -643,22 +647,42 @@ public class MQClientInstance {
         }
     }
 
-
+    /**
+     * 从NameServer 更新Topic配置信息
+     *
+     * @param topic
+     * @return
+     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
     }
 
 
+    /**
+     * 从NameServer更新信息
+     * 1、更新Broker信息
+     * 2、更新生产信息
+     * 3、更新订阅信息
+     *
+     * @param topic
+     * @param isDefault
+     * @param defaultMQProducer
+     * @return
+     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
 
                     TopicRouteData topicRouteData;
+                    /**
+                     * 获取默认的TopicRouteData
+                     */
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData =
                                 this.mQClientAPIImpl
                                         .getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(), 1000 * 3);
+
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
@@ -779,23 +803,52 @@ public class MQClientInstance {
     }
 
 
+    /**
+     * RouteData转换成PublishInfo
+     *
+     * @param topic
+     * @param route
+     * @return
+     */
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
+
         TopicPublishInfo info = new TopicPublishInfo();
+
+        /**
+         * 顺序Topic
+         */
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
+
             String[] brokers = route.getOrderTopicConf().split(";");
+
             for (String broker : brokers) {
                 String[] item = broker.split(":");
                 int nums = Integer.parseInt(item[1]);
+
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
                 }
+
             }
 
             info.setOrderTopic(true);
         } else {
+
             List<QueueData> qds = route.getQueueDatas();
+            /**
+             * 按照BrokerName排序
+             */
             Collections.sort(qds);
+
+            /**
+             * 根据QueueData
+             * 找到与每一个QueueData对应的BrokerData(两者属于同一个BrokerName)，并且BrokerData对应的broker地址中包含主节点地址
+             *
+             * 根据QueueData中设置的写队列数，
+             * 创建对应个数的MessageQueue
+             *
+             */
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
                     BrokerData brokerData = null;
@@ -827,16 +880,29 @@ public class MQClientInstance {
         return info;
     }
 
-
+    /**
+     * Topic路由信息转换成Topic订阅信息
+     *
+     * @param topic
+     * @param route
+     * @return
+     */
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
+
+        /**
+         * NameServer端QueueData与消费端MessageQueue对应关系：
+         * 一个QueueData可以对应多个MessageQueue
+         */
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
-            if (PermName.isReadable(qd.getPerm())) {
+            if (PermName.isReadable(qd.getPerm())) {  //Queue可读
+
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);
                 }
+
             }
         }
 
@@ -1043,6 +1109,9 @@ public class MQClientInstance {
     }
 
 
+    /**
+     * 所有的消费者，全部Rebalance
+     */
     public void doRebalance() {
         for (String group : this.consumerTable.keySet()) {
             MQConsumerInner impl = this.consumerTable.get(group);

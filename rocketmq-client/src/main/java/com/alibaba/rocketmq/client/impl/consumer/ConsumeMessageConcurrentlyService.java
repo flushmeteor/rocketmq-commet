@@ -258,7 +258,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                                      final ConsumeConcurrentlyContext context, //
                                      final ConsumeRequest consumeRequest//
     ) {
-        //ack用来标记消费成功失败的位置，ackIndex位置后面的数据都是处理失败的
+
+
+        /**
+         * ack用来标记消费成功失败的位置，ackIndex位置后面的数据都是处理失败的
+         *
+         * 所以，可以通过设置context的ackIndex来标记哪些消息成功了，哪些失败了
+         *
+         */
         int ackIndex = context.getAckIndex();
 
         //如果没有消息则不处理

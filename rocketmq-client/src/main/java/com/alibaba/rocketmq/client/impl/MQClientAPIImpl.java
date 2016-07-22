@@ -204,6 +204,21 @@ public class MQClientAPIImpl {
             Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "true"));
 
 
+    /**
+     * 发送消息到Broker
+     *
+     * @param addr              broker地址
+     * @param brokerName
+     * @param msg
+     * @param requestHeader
+     * @param timeoutMillis
+     * @param communicationMode
+     * @param sendCallback
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public SendResult sendMessage(//
                                   final String addr,// 1
                                   final String brokerName,// 2
@@ -213,7 +228,12 @@ public class MQClientAPIImpl {
                                   final CommunicationMode communicationMode,// 6
                                   final SendCallback sendCallback// 7
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
         RemotingCommand request = null;
+        /**
+         * send smart msg?
+         * 作用是啥？
+         */
         if (sendSmartMsg) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
@@ -844,12 +864,24 @@ public class MQClientAPIImpl {
     }
 
 
+    /**
+     * 解锁BatchMQ
+     *
+     * @param addr          Broker主节点地址
+     * @param requestBody
+     * @param timeoutMillis
+     * @param oneway
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public void unlockBatchMQ(//
-                              final String addr,//
+                              final String addr,//Broker主节点地址
                               final UnlockBatchRequestBody requestBody,//
                               final long timeoutMillis,//
                               final boolean oneway//
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
 
         request.setBody(requestBody.encode());
@@ -1054,15 +1086,28 @@ public class MQClientAPIImpl {
     }
 
 
+    /**
+     * 从NameServer 获取指定Topic的路由信息
+     *
+     * @param topic
+     * @param timeoutMillis
+     * @return
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis) throws RemotingException,
             MQClientException, InterruptedException {
+
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+
         assert response != null;
+
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);

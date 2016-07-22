@@ -60,7 +60,7 @@ public class RouteInfoManager {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
-     * Topic名称与队列对应关系
+     * Topic名称与QueueData对应关系
      */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
 
@@ -339,8 +339,12 @@ public class RouteInfoManager {
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);
+
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
+        //允许读的队列数
+        //消费者在读取的时候，会根据这个数量创建多个MessageQueue
         queueData.setReadQueueNums(topicConfig.getReadQueueNums());
+
         queueData.setPerm(topicConfig.getPerm());
         queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());
 
@@ -497,23 +501,44 @@ public class RouteInfoManager {
     }
 
 
+    /**
+     * 获取Topic的路由信息
+     *
+     * @param topic
+     * @return
+     */
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
+
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
+
+        /**
+         * Broker信息
+         */
         Set<String> brokerNameSet = new HashSet<String>();
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
+        /**
+         * FilterServer信息
+         */
         HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
+
+                /**
+                 * 通过Topic找到QueueData列表
+                 * 然后根据QueueData 查找Broker信息
+                 * 然后根据Broker信息 查找FilterServer信息
+                 */
                 List<QueueData> queueDataList = this.topicQueueTable.get(topic);
                 if (queueDataList != null) {
                     topicRouteData.setQueueDatas(queueDataList);
+
                     foundQueueData = true;
 
                     Iterator<QueueData> it = queueDataList.iterator();
@@ -524,11 +549,11 @@ public class RouteInfoManager {
 
                     for (String brokerName : brokerNameSet) {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData();
                             brokerDataClone.setBrokerName(brokerData.getBrokerName());
-                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData
-                                    .getBrokerAddrs().clone());
+                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData.getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
 
@@ -840,6 +865,7 @@ public class RouteInfoManager {
      * 获取集群下的Topic
      * Topic:BrokerName = 1:n
      * 所以需要先根据cluster查找到brokerName
+     *
      * @param cluster
      * @return
      */

@@ -72,7 +72,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
      * @param increaseOnly 是否只增加，如果为false，则值被替换成参数主公的offset，否则是在原来基础上增加
      */
     @Override
-        public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
+    public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
             AtomicLong offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
@@ -91,6 +91,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     }
 
 
+    /**
+     * 读取Offset值
+     *
+     * @param mq   读取哪个MessageQueue的Offset值
+     * @param type 读取方式，从内存还是从服务端还是其他
+     * @return
+     */
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
@@ -106,9 +113,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
+                        /**
+                         * 从Broker读取Offset
+                         */
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
+
+                        /**
+                         * 更新到本地内存（直接覆盖本地内存的值）
+                         */
                         AtomicLong offset = new AtomicLong(brokerOffset);
+                        // false 表示直接覆盖本地内存的值
                         this.updateOffset(mq, offset.get(), false);
+
                         return brokerOffset;
                     }
                     // No offset in broker

@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.store;
 
@@ -72,16 +72,13 @@ public class MapedFile extends ReferenceResource {
             TotalMapedVitualMemory.addAndGet(fileSize);
             TotalMapedFiles.incrementAndGet();
             ok = true;
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             log.error("create file channel " + this.fileName + " Failed. ", e);
             throw e;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("map file " + this.fileName + " Failed. ", e);
             throw e;
-        }
-        finally {
+        } finally {
             if (!ok && this.fileChannel != null) {
                 this.fileChannel.close();
             }
@@ -114,8 +111,7 @@ public class MapedFile extends ReferenceResource {
                     Method method = method(target, methodName, args);
                     method.setAccessible(true);
                     return method.invoke(target);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
             }
@@ -127,8 +123,7 @@ public class MapedFile extends ReferenceResource {
             throws NoSuchMethodException {
         try {
             return target.getClass().getMethod(methodName, args);
-        }
-        catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException e) {
             return target.getClass().getDeclaredMethod(methodName, args);
         }
     }
@@ -191,9 +186,15 @@ public class MapedFile extends ReferenceResource {
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
+
+            /**
+             * 写入消息
+             */
             AppendMessageResult result =
                     cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
+
             this.wrotePostion.addAndGet(result.getWroteBytes());
+
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
@@ -228,8 +229,7 @@ public class MapedFile extends ReferenceResource {
                 this.mappedByteBuffer.force();
                 this.committedPosition.set(value);
                 this.release();
-            }
-            else {
+            } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
                 this.committedPosition.set(this.wrotePostion.get());
             }
@@ -270,6 +270,13 @@ public class MapedFile extends ReferenceResource {
     }
 
 
+    /**
+     * 选在指定位置的消息
+     *
+     * @param pos  消息在当前MapedFile文件中的位置
+     * @param size 消息长度
+     * @return
+     */
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
         if ((pos + size) <= this.wrotePostion.get()) {
             if (this.hold()) {
@@ -278,13 +285,11 @@ public class MapedFile extends ReferenceResource {
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
                 return new SelectMapedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
-            }
-            else {
+            } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
                         + this.fileFromOffset);
             }
-        }
-        else {
+        } else {
             log.warn("selectMapedBuffer request pos invalid, request pos: " + pos + ", size: " + size
                     + ", fileFromOffset: " + this.fileFromOffset);
         }
@@ -343,14 +348,12 @@ public class MapedFile extends ReferenceResource {
                         + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
                         + this.getCommittedPosition() + ", "
                         + UtilAll.computeEclipseTimeMilliseconds(beginTime));
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
 
             return true;
-        }
-        else {
+        } else {
             log.warn("destroy maped file[REF:" + this.getRefCount() + "] " + this.fileName
                     + " Failed. cleanupOver: " + this.cleanupOver);
         }
@@ -379,8 +382,7 @@ public class MapedFile extends ReferenceResource {
                 time = System.currentTimeMillis();
                 try {
                     Thread.sleep(0);
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -389,11 +391,11 @@ public class MapedFile extends ReferenceResource {
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
             log.info("mapped file worm up done, force to disk, mappedFile={}, costTime={}",
-                this.getFileName(), System.currentTimeMillis() - beginTime);
+                    this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
-            System.currentTimeMillis() - beginTime);
+                System.currentTimeMillis() - beginTime);
     }
 
 

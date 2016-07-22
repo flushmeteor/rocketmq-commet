@@ -84,14 +84,28 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     }
 
 
+    /**
+     * 长轮询被唤醒的时候，重新处理被唤醒的客户端请求
+     * 当有消息到来的时候，唤醒长轮询
+     *
+     * @param channel
+     * @param request
+     * @throws RemotingCommandException
+     */
     public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request)
             throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
                 try {
-                    final RemotingCommand response =
-                            PullMessageProcessor.this.processRequest(channel, request, false);
+                    /**
+                     * 重新处理请求，不再允许挂起，直接拿到响应结果发送给客户端
+                     *
+                     * 长轮询，如果第一次请求没有数据，则把请求缓存起来，当有消息到来的时候，
+                     * 需要重新处理一下请求，处理流程与第一次一致，唯一的不同是，这次不再允许Broker挂起请求（下面方法的第三个参数false)
+                     *
+                     */
+                    final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
                     if (response != null) {
                         response.setOpaque(request.getOpaque());
@@ -121,6 +135,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
         };
 
+        /**
+         * 提交到队列执行
+         */
         this.brokerController.getPullMessageExecutor().submit(run);
     }
 
@@ -394,14 +411,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         final SocketAddress storeHost =
                                 new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
                                         brokerController.getNettyServerConfig().getListenPort());
+
+                        /**
+                         * 构造消息ID
+                         */
                         Map<String, Long> messageIds =
                                 this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
                                         requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                                         requestHeader.getQueueOffset() + getMessageResult.getMessageCount(),
                                         storeHost);
+
                         context.setMessageIds(messageIds);
-                        context.setBodyLength(getMessageResult.getBufferTotalSize()
-                                / getMessageResult.getMessageCount());
+                        context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
                         this.executeConsumeMessageHookBefore(context);
                     }
 
@@ -411,6 +432,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     break;
                 case NO_MATCHED_LOGIC_QUEUE:
                 case NO_MESSAGE_IN_QUEUE:
+                    /**
+                     * 队列中没有消息
+                     * Offset不等于0，返回Offset_MOVED
+                     */
                     if (0 != requestHeader.getQueueOffset()) {
                         response.setCode(ResponseCode.PULL_OFFSET_MOVED);
 
@@ -423,6 +448,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                 requestHeader.getConsumerGroup()//
                         );
                     } else {
+                        /**
+                         * QueueOffset==0,返回PULL_NOT_FOUND
+                         */
+
                         response.setCode(ResponseCode.PULL_NOT_FOUND);
                     }
                     break;
@@ -472,7 +501,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                     break;
                 case ResponseCode.PULL_NOT_FOUND:
-                    //TODO:
                     if (!brokerAllowSuspend) {
                         this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
                                 requestHeader.getConsumerGroup(), requestHeader.getTopic(),
@@ -495,6 +523,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
              */
             switch (response.getCode()) {
                 case ResponseCode.SUCCESS:
+                    /**
+                     * 消息查找成功
+                     */
+
+                    /**
+                     * 统计数据
+                     */
                     this.brokerController.getBrokerStatsManager().incGroupGetNums(
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                             getMessageResult.getMessageCount());
@@ -506,14 +541,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(
                             getMessageResult.getMessageCount());
 
+                    /**
+                     * 是否通过java堆传输消息
+                     * 如果是，则直接读取消息到JVM内存，然后设置到Response中
+                     * 如果不是，则通过FileRegion进行传输
+                     * FileRegion是Netty提供的用于支持零拷贝的数据传输方式
+                     */
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                         final byte[] r = this.readGetMessageResult(getMessageResult);
                         response.setBody(r);
                     } else {
                         try {
-                            FileRegion fileRegion =
-                                    new ManyMessageTransfer(response.encodeHeader(getMessageResult
-                                            .getBufferTotalSize()), getMessageResult);
+                            FileRegion fileRegion = new ManyMessageTransfer(response.encodeHeader(getMessageResult
+                                    .getBufferTotalSize()), getMessageResult);
                             channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -547,17 +587,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         }
 
                         /**
-                         * 构造拉取请求
+                         * 重新构造pullRequest
                          */
-                        PullRequest pullRequest =
-                                new PullRequest(request, channel, pollingTimeMills, this.brokerController
-                                        .getMessageStore().now(), requestHeader.getQueueOffset());
+                        PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills, this.brokerController
+                                .getMessageStore().now(), requestHeader.getQueueOffset());
 
                         /**
                          * 挂起请求，等待数据到来
                          */
-                        this.brokerController.getPullRequestHoldService().suspendPullRequest(
-                                requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
+                        this.brokerController.getPullRequestHoldService().suspendPullRequest(requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
                         response = null;
                         break;
                     }
@@ -603,10 +641,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         /**
          * 更新客户端提交过来的Offset数据
          */
+        /**
+         * 判断是否允许保存客户端提交的Offset
+         *
+         * 1.本地调用的参数"是否允许Broker挂起"为true
+         * 2.客户端提交的请求中是否有“提交Offset”标志位
+         * 3.当前Broker是否为Master，如果不是master，即使客户端含有“commitOffset”标志位，也不保存
+         */
         boolean storeOffsetEnable = brokerAllowSuspend;
         storeOffsetEnable = storeOffsetEnable && hasCommitOffsetFlag;
-        storeOffsetEnable = storeOffsetEnable
-                && this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
+        storeOffsetEnable = storeOffsetEnable && this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
+
+
         if (storeOffsetEnable) {
             this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
                     requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());

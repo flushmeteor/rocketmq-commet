@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.alibaba.rocketmq.store.stats;
@@ -30,6 +30,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 
+/**
+ * Broker统计管理
+ * TODO：统计数据指标都有哪些？
+ */
 public class BrokerStatsManager {
 
     public enum StatsType {
@@ -45,11 +49,11 @@ public class BrokerStatsManager {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "BrokerStatsThread"));
+            "BrokerStatsThread"));
 
     private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
     private final ScheduledExecutorService commercialStatsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "CommercialStatsThread"));
+            "CommercialStatsThread"));
 
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
@@ -106,25 +110,25 @@ public class BrokerStatsManager {
 
         // For commercial
         this.statsTable.put(COMMERCIAL_TOPIC_SEND_TIMES, new StatsItemSet(COMMERCIAL_TOPIC_SEND_TIMES, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_GROUP_RCV_TIMES, new StatsItemSet(COMMERCIAL_GROUP_RCV_TIMES, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_TOPIC_SEND_SIZE, new StatsItemSet(COMMERCIAL_TOPIC_SEND_SIZE, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_GROUP_RCV_SIZE, new StatsItemSet(COMMERCIAL_GROUP_RCV_SIZE, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_GROUP_RCV_EPOLLS, new StatsItemSet(COMMERCIAL_GROUP_RCV_EPOLLS, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_GROUP_SNDBCK_TIMES, new StatsItemSet(COMMERCIAL_GROUP_SNDBCK_TIMES, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
 
         this.statsTable.put(COMMERCIAL_GROUP_SNDBCK_SIZE, new StatsItemSet(COMMERCIAL_GROUP_SNDBCK_SIZE, this.commercialStatsExecutor,
-            commercialLog));
+                commercialLog));
     }
 
 
@@ -140,8 +144,7 @@ public class BrokerStatsManager {
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
         try {
             return this.statsTable.get(statsName).getStatsItem(statsKey);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
 
         return null;

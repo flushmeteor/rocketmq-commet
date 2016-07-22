@@ -174,6 +174,10 @@ public class FilterServerManager {
     }
 
 
+    /**
+     * 构造FilterServer服务器地址列表
+     * @return
+     */
     public List<String> buildNewFilterServerList() {
         List<String> addr = new ArrayList<String>();
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();

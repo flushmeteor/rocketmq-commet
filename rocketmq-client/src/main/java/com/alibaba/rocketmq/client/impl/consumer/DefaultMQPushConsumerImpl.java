@@ -268,6 +268,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
+    /**
+     * 更新Topic订阅信息
+     *
+     * @param topic
+     * @param info
+     */
     @Override
     public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();

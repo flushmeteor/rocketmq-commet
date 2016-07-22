@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.store.config;
 
@@ -23,7 +23,6 @@ import java.io.File;
 
 
 /**
- * 
  * @author shijia.wxr
  * @author vongosling
  */
@@ -78,16 +77,27 @@ public class MessageStoreConfig {
     private int flushConsumeQueueLeastPages = 2;
     private int flushCommitLogThoroughInterval = 1000 * 10;
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
+
+    //内存中的消息， 最大传输字节数
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
+    //内存中的消息， 最大传输条数
     @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
+
+    //磁盘中的消息 最大传输字节数 用于控制返回给客户端的消息数据量
     @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
+    //磁盘中的消息 最大传输条数 用于控制返回给客户端的消息数据量
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+
+    /**
+     * 从内存中获取消息的最大比例
+     */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
+
     @ImportantField
     private boolean messageIndexEnable = true;
     private int maxHashSlotNum = 5000000;
