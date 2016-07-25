@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.alibaba.rocketmq.client.stat;
@@ -27,7 +27,9 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.stats.StatsItemSet;
 import com.alibaba.rocketmq.common.stats.StatsSnapshot;
 
-
+/**
+ * 消费者统计数据
+ */
 public class ConsumerStatsManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ClientLoggerName);
 
@@ -37,10 +39,29 @@ public class ConsumerStatsManager {
     private static final String TOPIC_AND_GROUP_PULL_TPS = "PULL_TPS";
     private static final String TOPIC_AND_GROUP_PULL_RT = "PULL_RT";
 
+    /**
+     * 消费成功消息条数统计
+     */
     private final StatsItemSet topicAndGroupConsumeOKTPS;
+
+    /**
+     * 消息批次执行耗时统计
+     * 比如每一次调用listener.consumeMessage的耗时时间都会劣累积
+     */
     private final StatsItemSet topicAndGroupConsumeRT;
+    /**
+     * 消费失败消息条数统计
+     */
     private final StatsItemSet topicAndGroupConsumeFailedTPS;
+
+    /**
+     * PUSH模式拉取到的消息总数
+     */
     private final StatsItemSet topicAndGroupPullTPS;
+
+    /**
+     * PUSH模式拉取消息总耗时统计
+     */
     private final StatsItemSet topicAndGroupPullRT;
 
 

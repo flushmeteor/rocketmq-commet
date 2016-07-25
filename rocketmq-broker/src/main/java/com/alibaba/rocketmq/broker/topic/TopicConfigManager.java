@@ -291,11 +291,20 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
+    /**
+     * 客户端发送消息回来 创建TopicConfig
+     * @param topic Topic
+     * @param clientDefaultTopicQueueNums 客户端默认的队列数
+     * @param perm config权限
+     * @param topicSysFlag flag
+     * @return
+     */
     public TopicConfig createTopicInSendMessageBackMethod(//
                                                           final String topic, //
                                                           final int clientDefaultTopicQueueNums,//
                                                           final int perm,//
                                                           final int topicSysFlag) {
+
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
         if (topicConfig != null)
             return topicConfig;
@@ -318,6 +327,10 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
+
+                    /**
+                     * 新创建TopicCongig，修改当前版本号
+                     */
                     this.dataVersion.nextVersion();
                     this.persist();
                 } finally {

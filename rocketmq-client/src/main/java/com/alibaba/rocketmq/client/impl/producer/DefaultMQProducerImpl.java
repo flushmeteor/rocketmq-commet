@@ -521,7 +521,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             SendResult sendResult = null;
 
             /**
-             * 失败重试次数
+             * 失败重试次数，默认2次，加上第一次发送，一共发送三次（如果没超时的话）
              */
             int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
 
@@ -571,8 +571,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                  */
                                 if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
                                     /**
-                                     * 当发送失败的时候，如果设置了尝试另一个Broker，则继续重试，否则终止，
+                                     * 当发送结果不是SEND_OK的时候，如果设置了尝试另一个Broker，则继续重试，否则终止，
                                      * 默认为false，即默认不会重试，如果想自动重试，可以通过Producer.setRetryAnotherBrokerWhenNotStoreOK 方法设置
+                                     *
+                                     * PS：send 消息方法，只要不抛异常，就代表发送成功。但是发送成功会有多个状态，在 sendResult 里定义
                                      */
                                     if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
                                         continue;
@@ -581,6 +583,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                                 /**
                                  * 如果成功了直接返回
+                                 * 这里没有判断SendStatus的值，所以，如果是正常返回了都认为成功了
                                  */
                                 return sendResult;
                             default:

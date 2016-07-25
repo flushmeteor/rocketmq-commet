@@ -1026,6 +1026,7 @@ public class CommitLog {
 
             /**
              * 创建消息ID
+             * 注意：对于消费失败重新发回给Broker的消息，它的消息ID也是重新创建的
              */
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 

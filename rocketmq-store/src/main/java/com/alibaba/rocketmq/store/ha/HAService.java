@@ -465,7 +465,6 @@ public class HAService {
                             break;
                         }
                     } else {
-                        // TODO ERROR
                         log.info("HAClient, processReadEvent read socket < 0");
                         return false;
                     }

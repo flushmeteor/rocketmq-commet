@@ -46,7 +46,6 @@ public class PullMessageService extends ServiceThread {
     }
 
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
-        new Exception().printStackTrace();
         this.scheduledExecutorService.schedule(new Runnable() {
 
             @Override
@@ -58,7 +57,6 @@ public class PullMessageService extends ServiceThread {
 
 
     public void executeTaskLater(final Runnable r, final long timeDelay) {
-        new Exception().printStackTrace();
         this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
     }
 

@@ -214,7 +214,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             int topicSysFlag = 0;
 
             /**
-             * TODO: UnitMode是啥？
+             * UnitMode是RocketMQ商业版用的，这里不需要关心
              */
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

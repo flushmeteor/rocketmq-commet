@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
+import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.junit.Test;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -48,14 +50,24 @@ public class SimpleConsumerProducerTest {
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(TOPIC_TEST, null);
+
+        //获取当前Consumer运行信息
+        ConsumerRunningInfo runningInfo = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().consumerRunningInfo("S_fundmng_demo_producer");
+
+        // 获取某个Topic下的统计信息
+        ConsumeStatus consumeStatus = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getConsumerStatsManager().consumeStatus("group", "topic");
+
         //consumer.setUnitMode(true);
 //        //暂停消费
 //        consumer.suspend();
 //        //继续消费
 //        consumer.resume();
 
-        //设置每个队列的最大PULL数量
-//        consumer.setPullThresholdForQueue(10000);
+        // 设置批次消息大小，这个值决定了listener.consumeMessage(msgs)参数中，每次消息的最大大小，默认为1
+        consumer.setConsumeMessageBatchMaxSize(1);
+
+        //设置每个ProcessQueue中可以同时处理的最大消息数量
+        consumer.setPullThresholdForQueue(10000);
 
         /**
          * 设置每次拉取消息的数据量，默认32

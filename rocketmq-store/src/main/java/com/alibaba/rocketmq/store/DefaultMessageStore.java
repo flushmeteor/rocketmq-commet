@@ -376,9 +376,8 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         /**
-         * 设置最大时间
-         * 如果当前耗时是目前最大的，则设置成当前耗时
-         * 即 存储的是到目前为止最长的耗时
+         * 按照耗时时间不同，统计数据矩阵
+         * 详见方法实现
          */
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
 
@@ -763,20 +762,34 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
+    /**
+     * 获取运行时信息
+     *
+     * @return
+     */
     @Override
     public HashMap<String, String> getRuntimeInfo() {
+
+        /**
+         * 存储的运行时信息
+         * tps值等
+         */
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
         {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
             double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            /**
+             *  commitlog磁盘使用率
+             */
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
-
         }
 
         {
-
             String storePathLogics = StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
             double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
+            /**
+             * 逻辑队列文件磁盘使用率
+             */
             result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
 
