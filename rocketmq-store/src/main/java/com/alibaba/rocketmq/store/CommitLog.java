@@ -679,7 +679,8 @@ public class CommitLog {
             }
         }
         /**
-         * 如果是异步复制，不管了？
+         * 如果是异步复制，SLAVE端启动一个线程，不断从Master拉取数据
+         * TODO:线程在哪里？？没找到到
          */
 
         return putMessageResult;
