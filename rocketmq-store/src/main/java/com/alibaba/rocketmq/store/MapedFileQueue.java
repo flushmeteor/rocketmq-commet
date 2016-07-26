@@ -36,9 +36,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.StoreErrorLoggerName);
+    /**
+     * 删除文件的时候，每次最多删除的文件个数
+     */
     private static final int DeleteFilesBatchMax = 10;
     private final String storePath;
+
     private final int mapedFileSize;
+
     private final List<MapedFile> mapedFiles = new ArrayList<MapedFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final AllocateMapedFileService allocateMapedFileService;
@@ -52,7 +57,9 @@ public class MapedFileQueue {
         this.allocateMapedFileService = allocateMapedFileService;
     }
 
-
+    /**
+     * 自我检查，通过定时任务触发
+     */
     public void checkSelf() {
         this.readWriteLock.readLock().lock();
         try {
@@ -60,9 +67,20 @@ public class MapedFileQueue {
                 MapedFile first = this.mapedFiles.get(0);
                 MapedFile last = this.mapedFiles.get(this.mapedFiles.size() - 1);
 
+                /**
+                 * 通过Offset计算得出当前队列中应该有多少个MapedFile
+                 */
                 int sizeCompute =
                         (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mapedFileSize) + 1;
+
+                /**
+                 * mapedFiles 得出当前内存中实际有多少个MapedFile
+                 */
                 int sizeReal = this.mapedFiles.size();
+
+                /**
+                 * 如果数据不一致，就打印错误日志
+                 */
                 if (sizeCompute != sizeReal) {
                     logError
                             .error(
@@ -216,7 +234,15 @@ public class MapedFileQueue {
         return mapedFileLast;
     }
 
-
+    /**
+     * 获取最后一个文件
+     * 如果当前不存在任何文件 或者
+     * 最后一个文件满了
+     * 则创建新文件
+     *
+     * @param startOffset
+     * @return
+     */
     public MapedFile getLastMapedFile(final long startOffset) {
         return getLastMapedFile(startOffset, true);
     }
@@ -234,6 +260,9 @@ public class MapedFileQueue {
             this.readWriteLock.readLock().unlock();
         }
 
+        /**
+         * 最后一个文件满了
+         */
         if (mapedFileLast != null && mapedFileLast.isFull()) {
             createOffset = mapedFileLast.getFileFromOffset() + this.mapedFileSize;
         }
@@ -315,7 +344,15 @@ public class MapedFileQueue {
         }
     }
 
-
+    /**
+     * 删除过期文件
+     *
+     * @param expiredTime         过期时间
+     * @param deleteFilesInterval 删除文件的时间间隔，即删除文件1之后歇会儿在删除文件2，歇多久就是这个参数
+     * @param intervalForcibly
+     * @param cleanImmediately    是否立即清除
+     * @return
+     */
     public int deleteExpiredFileByTime(//
                                        final long expiredTime, //
                                        final int deleteFilesInterval, //
@@ -329,21 +366,48 @@ public class MapedFileQueue {
 
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
+
         List<MapedFile> files = new ArrayList<MapedFile>();
+
         if (null != mfs) {
             for (int i = 0; i < mfsLength; i++) {
+
+                /**
+                 * 将要被删除的文件
+                 */
                 MapedFile mapedFile = (MapedFile) mfs[i];
+
+                /**
+                 * 最大存活时间
+                 */
                 long liveMaxTimestamp = mapedFile.getLastModifiedTimestamp() + expiredTime;
+
+                /**
+                 * 如果已经活够了，或者需要立即清除
+                 * 即两种情况删除
+                 * 1. 文件本身过期了
+                 * 2. 设置了立即删除（立即删除是指文件没有过期但是磁盘满了）
+                 */
                 if (System.currentTimeMillis() >= liveMaxTimestamp//
                         || cleanImmediately) {
+
+                    /**
+                     * destroy
+                     */
                     if (mapedFile.destroy(intervalForcibly)) {
                         files.add(mapedFile);
                         deleteCount++;
 
+                        /**
+                         * 每次最多删除多少个文件
+                         */
                         if (files.size() >= DeleteFilesBatchMax) {
                             break;
                         }
 
+                        /**
+                         * 如果设置了删除文件时间间隔，就歇会儿在删
+                         */
                         if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
                             try {
                                 Thread.sleep(deleteFilesInterval);
@@ -357,12 +421,22 @@ public class MapedFileQueue {
             }
         }
 
+        /**
+         * 删除过期的文件
+         */
         deleteExpiredFile(files);
 
         return deleteCount;
     }
 
 
+    /**
+     * 根据Offset删除ConsumeQueue
+     *
+     * @param offset   commitlog的最小offset值
+     * @param unitSize
+     * @return
+     */
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMapedFiles(0);
 
@@ -373,12 +447,32 @@ public class MapedFileQueue {
 
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy = true;
+
                 MapedFile mapedFile = (MapedFile) mfs[i];
+
+                /**
+                 * 获取最后一条消息的数据
+                 * 消息格式
+                 * |8Byte commmitLog Offset|4Byte size|8Byte hashcode|
+                 *
+                 * 最后一条消息中保存的是当前逻辑队列中最大的物理Offset值
+                 */
                 SelectMapedBufferResult result = mapedFile.selectMapedBuffer(this.mapedFileSize - unitSize);
+
                 if (result != null) {
+
+                    /**
+                     * 当前逻辑队列中的最大物理Offset值
+                     */
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
+
                     result.release();
+
+                    /**
+                     * 如果当前逻辑队列中的最大Offset值已经小于物理文件的最小offet值，那么该逻辑队列就应该被删除
+                     */
                     destroy = (maxOffsetInLogicQueue < offset);
+
                     if (destroy) {
                         log.info("physic min offset " + offset + ", logics in current mapedfile max offset "
                                 + maxOffsetInLogicQueue + ", delete it");
@@ -388,6 +482,9 @@ public class MapedFileQueue {
                     break;
                 }
 
+                /**
+                 * 如果要删除，那么就删除
+                 */
                 if (destroy && mapedFile.destroy(1000 * 60)) {
                     files.add(mapedFile);
                     deleteCount++;
@@ -402,15 +499,30 @@ public class MapedFileQueue {
         return deleteCount;
     }
 
+    /**
+     * 刷盘
+     *
+     * @param flushLeastPages 最少刷盘页数
+     * @return
+     */
     public boolean commit(final int flushLeastPages) {
         boolean result = true;
+
         MapedFile mapedFile = this.findMapedFileByOffset(this.committedWhere, true);
+
         if (mapedFile != null) {
             long tmpTimeStamp = mapedFile.getStoreTimestamp();
+
             int offset = mapedFile.commit(flushLeastPages);
+
             long where = mapedFile.getFileFromOffset() + offset;
+
             result = (where == this.committedWhere);
             this.committedWhere = where;
+
+            /**
+             * 如果是0页
+             */
             if (0 == flushLeastPages) {
                 this.storeTimestamp = tmpTimeStamp;
             }

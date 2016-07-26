@@ -125,6 +125,15 @@ public class CommitLog {
     }
 
 
+    /**
+     * 删除过期文件
+     *
+     * @param expiredTime         文件过期时间（72小时）
+     * @param deleteFilesInterval 删除文件的间隔
+     * @param intervalForcibly    啥
+     * @param cleanImmediately    是否立即清除
+     * @return
+     */
     public int deleteExpiredFile(//
                                  final long expiredTime, //
                                  final int deleteFilesInterval, //
@@ -742,6 +751,13 @@ public class CommitLog {
     }
 
 
+    /**
+     * 把data追加到MapedFile中
+     *
+     * @param startOffset
+     * @param data
+     * @return
+     */
     public boolean appendData(long startOffset, byte[] data) {
         synchronized (this) {
             MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(startOffset);
@@ -778,6 +794,7 @@ public class CommitLog {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
 
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                //刷盘页数，默认4也
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 int flushPhysicQueueThoroughInterval =

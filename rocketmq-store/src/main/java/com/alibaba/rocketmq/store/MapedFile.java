@@ -42,9 +42,16 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class MapedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
+
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
+
+    /**
+     * 虚拟内存
+     */
     private static final AtomicLong TotalMapedVitualMemory = new AtomicLong(0);
+
     private static final AtomicInteger TotalMapedFiles = new AtomicInteger(0);
+
     private final String fileName;
     private final long fileFromOffset;
     private final int fileSize;
@@ -67,11 +74,16 @@ public class MapedFile extends ReferenceResource {
         ensureDirOK(this.file.getParent());
 
         try {
+            /**
+             * mmap
+             */
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+
             TotalMapedVitualMemory.addAndGet(fileSize);
             TotalMapedFiles.incrementAndGet();
             ok = true;
+
         } catch (FileNotFoundException e) {
             log.error("create file channel " + this.fileName + " Failed. ", e);
             throw e;
@@ -96,7 +108,11 @@ public class MapedFile extends ReferenceResource {
         }
     }
 
-
+    /**
+     * 清理ByteBuffer
+     *
+     * @param buffer
+     */
     public static void clean(final ByteBuffer buffer) {
         if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
             return;
@@ -222,12 +238,32 @@ public class MapedFile extends ReferenceResource {
         return false;
     }
 
+    /**
+     * 刷盘
+     *
+     * @param flushLeastPages 最少刷盘页数
+     * @return 返回当前已经刷盘的位置
+     */
     public int commit(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
+
+            /***
+             * 计数器+1
+             */
             if (this.hold()) {
+
+                //写的位置
                 int value = this.wrotePostion.get();
+
+                //刷盘
                 this.mappedByteBuffer.force();
+
+                //更新刷盘位置到写的位置
                 this.committedPosition.set(value);
+
+                /**
+                 * 计数器-1
+                 */
                 this.release();
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
@@ -249,15 +285,23 @@ public class MapedFile extends ReferenceResource {
     }
 
 
+    /**
+     * 判断能否刷盘
+     *
+     * @param flushLeastPages 最少刷盘页数
+     * @return
+     */
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.committedPosition.get();
         int write = this.wrotePostion.get();
 
+        // 如果当前文件已经写满了，允许刷盘
         if (this.isFull()) {
             return true;
         }
 
         if (flushLeastPages > 0) {
+            //写的页数-已经刷的页数>=最少刷盘页数
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
 
@@ -265,6 +309,11 @@ public class MapedFile extends ReferenceResource {
     }
 
 
+    /**
+     * 当前文件写满了
+     *
+     * @return
+     */
     public boolean isFull() {
         return this.fileSize == this.wrotePostion.get();
     }
@@ -300,11 +349,15 @@ public class MapedFile extends ReferenceResource {
     public SelectMapedBufferResult selectMapedBuffer(int pos) {
         if (pos < this.wrotePostion.get() && pos >= 0) {
             if (this.hold()) {
+
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
+
                 int size = this.wrotePostion.get() - pos;
+
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
+
                 return new SelectMapedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
@@ -313,6 +366,12 @@ public class MapedFile extends ReferenceResource {
     }
 
 
+    /**
+     * 释放资源
+     *
+     * @param currentRef
+     * @return
+     */
     @Override
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
@@ -334,6 +393,12 @@ public class MapedFile extends ReferenceResource {
         return true;
     }
 
+    /**
+     * 删除文件
+     *
+     * @param intervalForcibly 超过多久就强制删除
+     * @return
+     */
     public boolean destroy(final long intervalForcibly) {
         this.shutdown(intervalForcibly);
 
@@ -361,13 +426,25 @@ public class MapedFile extends ReferenceResource {
         return false;
     }
 
+    /**
+     * @param type
+     * @param pages
+     */
     public void warmMappedFile(FlushDiskType type, int pages) {
         long beginTime = System.currentTimeMillis();
+
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+
         int flush = 0;
         long time = System.currentTimeMillis();
+
+        /**
+         * 一个字节一个字节的写入数据
+         */
         for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
+
+
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {

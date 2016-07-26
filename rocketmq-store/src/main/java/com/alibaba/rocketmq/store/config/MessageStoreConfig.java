@@ -34,9 +34,16 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "commitlog";
+
+    /**
+     * 单个COmmitLog文件大小，默认1G
+     */
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
-    // ConsumeQueue file size, default is 30W
+    /**
+     * 单个ConsumeQueue文件大小，默认600W Byte
+     */
+    // ConsumeQueue file size, default is 30W*20Byte = 600WByte
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
     // CommitLog flush interval
     @ImportantField
@@ -119,6 +126,14 @@ public class MessageStoreConfig {
     private int syncFlushTimeout = 1000 * 5;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
+
+    /**
+     * 磁盘满、且无过期文件情况下
+     TRUE 表示强制删除文件，优
+     先保证服务可用
+     FALSE 标记服务不可用，文件
+     不删除
+     */
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
     private boolean warmMapedFileEnable = false;
@@ -604,7 +619,10 @@ public class MessageStoreConfig {
         this.storePathRootDir = storePathRootDir;
     }
 
-
+    /**
+     * 预分配的时候的最小刷盘页数
+     * @return
+     */
     public int getFlushLeastPagesWhenWarmMapedFile() {
         return flushLeastPagesWhenWarmMapedFile;
     }

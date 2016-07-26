@@ -33,12 +33,23 @@ public class ConsumeQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.StoreErrorLoggerName);
     private final DefaultMessageStore defaultMessageStore;
+
+    /**
+     * 消费者队列中的MapedFileQueue
+     */
     private final MapedFileQueue mapedFileQueue;
+
+
     private final String topic;
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
     private final String storePath;
+
+    /**
+     * 每个MapedFile大小
+     */
     private final int mapedFileSize;
+
     private long maxPhysicOffset = -1;
     private volatile long minLogicOffset = 0;
 
@@ -286,7 +297,14 @@ public class ConsumeQueue {
     }
 
 
+    /**
+     * 删除过期的ConsumeQueue
+     *
+     * @param offset commitLog中的最小Offset值
+     * @return 返回删除数量
+     */
     public int deleteExpiredFile(long offset) {
+
         int cnt = this.mapedFileQueue.deleteExpiredFileByOffset(offset, CQStoreUnitSize);
         this.correctMinOffset(offset);
         return cnt;

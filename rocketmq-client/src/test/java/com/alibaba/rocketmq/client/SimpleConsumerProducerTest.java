@@ -63,16 +63,25 @@ public class SimpleConsumerProducerTest {
 //        //继续消费
 //        consumer.resume();
 
-        // 设置批次消息大小，这个值决定了listener.consumeMessage(msgs)参数中，每次消息的最大大小，默认为1
-        consumer.setConsumeMessageBatchMaxSize(1);
 
-        //设置每个ProcessQueue中可以同时处理的最大消息数量
+        //设置每个ProcessQueue中可以同时处理的最大消息数量，超过这个值将不再继续拉取消息
+        //可以用来做流量控制，降低消费端负载
         consumer.setPullThresholdForQueue(10000);
 
         /**
          * 设置每次拉取消息的数据量，默认32
+         * 每次pullRequest请求拉取的消息数量
+         * 通过控制这个值可以控制从服务端拉取过来的数据量
          */
         consumer.setPullBatchSize(1);
+
+        /**
+         *  设置批次消息大小，这个值决定了listener.consumeMessage(msgs)参数中，每次消息的最大大小，默认为1
+         *  为1 表示消息一条一条被消费
+         *  如果想批量消费，可以设置大一点
+         */
+        consumer.setConsumeMessageBatchMaxSize(1);
+
 
         final AtomicLong lastReceivedMills = new AtomicLong(System.currentTimeMillis());
 

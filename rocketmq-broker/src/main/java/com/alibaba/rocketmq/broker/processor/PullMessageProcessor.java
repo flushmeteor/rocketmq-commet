@@ -376,15 +376,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             /**
              * 设置建议客户端从哪个BrokerID拉取
              */
+            /**
+             * 如果返回的是建议从slave获取
+             */
             if (getMessageResult.isSuggestPullingFromSlave()) {
-                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
-                        .getWhichBrokerWhenConsumeSlowly());
+
+                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
                 log.warn(
                         "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                         subscriptionData.getSubString(), requestHeader.getQueueId(),
                         requestHeader.getQueueOffset());
             } else {
+                //否则继续建议从当前Broker获取
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
             }
 

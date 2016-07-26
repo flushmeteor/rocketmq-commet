@@ -119,15 +119,30 @@ public class PullAPIWrapper {
     }
 
 
+    /**
+     * 处理拉取消息结果
+     *
+     * @param mq
+     * @param pullResult
+     * @param subscriptionData
+     * @return
+     */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
                                         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
+        /**
+         * 更新从哪个节点拉取消息
+         */
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
+            /**
+             * 客户端标签过滤
+             */
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
