@@ -771,15 +771,18 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                  * 如果是集群模式消费，把打当前实例的Name改成PID
                  */
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+                    /**
+                     * 如果是instanceName默认值，则修改成PID，否则不修改
+                     */
                     this.defaultMQPushConsumer.changeInstanceNameToPID();
                 }
 
                 /**
                  * 创建客户端代理
+                 * MQClientManager是单例，所以如果一个JVM中存在多个相同的消费者（同一个消费组，消费相同Topic)
+                 * 需要设置instanceName
                  */
-                this.mqClientInstance =
-                        MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer,
-                                this.rpcHook);
+                this.mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
 
                 /**
                  * 完善Rebalance信息

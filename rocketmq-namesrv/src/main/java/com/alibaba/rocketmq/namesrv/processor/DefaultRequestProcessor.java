@@ -252,9 +252,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {
-            String orderTopicConf =
-                    this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                            requestHeader.getTopic());
+            String orderTopicConf = this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,requestHeader.getTopic());
             topicRouteData.setOrderTopicConf(orderTopicConf);
 
             byte[] content = topicRouteData.encode();

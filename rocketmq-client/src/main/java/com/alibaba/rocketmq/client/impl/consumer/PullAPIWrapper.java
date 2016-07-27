@@ -53,11 +53,16 @@ public class PullAPIWrapper {
     /**
      * 维护MessageQueue与BrokerID的对应关系
      */
-    private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
-            new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
+    private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable = new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
 
-    private final MQClientInstance mQClientFactory;
+    private final MQClientInstance mqClientInstance;
+
+    /**
+     * 消费组
+     */
     private final String consumerGroup;
+
+
     private final boolean unitMode;
 
     private volatile boolean connectBrokerByUser = false;
@@ -65,7 +70,7 @@ public class PullAPIWrapper {
 
 
     public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
-        this.mQClientFactory = mQClientFactory;
+        this.mqClientInstance = mQClientFactory;
         this.consumerGroup = consumerGroup;
         this.unitMode = unitMode;
     }
@@ -104,7 +109,8 @@ public class PullAPIWrapper {
      */
     private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
             throws MQClientException {
-        ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
+        ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mqClientInstance.getTopicRouteTable();
+
         if (topicRouteTable != null) {
             TopicRouteData topicRouteData = topicRouteTable.get(topic);
             List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
@@ -114,8 +120,7 @@ public class PullAPIWrapper {
             }
         }
 
-        throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: "
-                + topic, null);
+        throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: " + topic, null);
     }
 
 
@@ -163,10 +168,8 @@ public class PullAPIWrapper {
             }
 
             for (MessageExt msg : msgListFilterAgain) {
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
-                        Long.toString(pullResult.getMinOffset()));
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
-                        Long.toString(pullResult.getMaxOffset()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET, Long.toString(pullResult.getMinOffset()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET, Long.toString(pullResult.getMaxOffset()));
             }
 
             pullResultExt.setMsgFoundList(msgListFilterAgain);
@@ -211,15 +214,14 @@ public class PullAPIWrapper {
 
         /**
          * 查找Broker
+         * 1.先从内存查找
+         * 2.内存没查到，从NameServer更新一下路由信息然后再从内存找
          */
         FindBrokerResult findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                        this.recalculatePullFromWhichNode(mq), false);
+                this.mqClientInstance.findBrokerAddressInSubscribe(mq.getBrokerName(), this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult =
-                    this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                            this.recalculatePullFromWhichNode(mq), false);
+            this.mqClientInstance.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mqClientInstance.findBrokerAddressInSubscribe(mq.getBrokerName(), this.recalculatePullFromWhichNode(mq), false);
         }
 
         if (findBrokerResult != null) {
@@ -240,6 +242,9 @@ public class PullAPIWrapper {
             requestHeader.setQueueOffset(offset);
             requestHeader.setMaxMsgNums(maxNums);
             requestHeader.setSysFlag(sysFlagInner);
+            /**
+             * 设置消费的当前队列的已经消费的最大的Offset值
+             */
             requestHeader.setCommitOffset(commitOffset);
             /**
              * Broker最大挂起时间
@@ -260,7 +265,11 @@ public class PullAPIWrapper {
                 brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 
-            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
+
+            /**
+             * 调用Remoting通信
+             */
+            PullResult pullResult = this.mqClientInstance.getMQClientAPIImpl().pullMessage(//
                     brokerAddr,//
                     requestHeader,//
                     timeoutMillis,//

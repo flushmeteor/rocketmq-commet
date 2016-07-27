@@ -55,7 +55,8 @@ public class SimpleConsumerProducerTest {
         consumer.setMessageModel(MessageModel.CLUSTERING);
 
         /**
-         *
+         * InstanceName 可以用来区分同一个JVM中多个consumerGroup和Topic相同的消费者
+         * 因为ClientID的设置是IP@InstanceName
          */
         consumer.setInstanceName("aaa");
 
