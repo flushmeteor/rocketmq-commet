@@ -54,6 +54,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *         <p>
  *         Topic 与 brokerName对应关系
  *         Topic:BrokerName = 1:n
+ *         <p>
+ *         保存关系：
+ *         1、Topic-->QueueData
+ *         2、BrokerName-->BrokerData
+ *         3、ClusterName-->BrokerName
+ *         4、存活的Broker信息（BrokerLiveInfo)
+ *         5、BrokerAddr-->FilterServerAddrs
+ *
+ *         QueueData与Broker关系：每个QueueData对应一个BrokerName
  */
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
@@ -193,7 +202,10 @@ public class RouteInfoManager {
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
 
-                //从这里可以看出，同一个brokerName中，如果存在相同的BrokerID，那么新注册的将会替代老的
+                /**
+                 * 从这里可以看出，同一个brokerName中，如果存在相同的BrokerID，那么新注册的将会替代老的
+                 * 也就是说，一个BrokerName中，只能有一台主节点
+                 */
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 //判断当前Broker是否首次注册
                 registerFirst = registerFirst || (null == oldAddr);
@@ -201,8 +213,7 @@ public class RouteInfoManager {
                 /**
                  * 注册的节点是主节点，并且含有topic配置信息
                  */
-                if (null != topicConfigWrapper //
-                        && MixAll.MASTER_ID == brokerId) {
+                if (null != topicConfigWrapper && MixAll.MASTER_ID == brokerId) {
                     /**
                      * 首次注册 或者 topicConfig信息发生了变化
                      */
@@ -331,7 +342,7 @@ public class RouteInfoManager {
 
 
     /**
-     * 更新broker对应的Topic信息
+     * 创建并且更新QueueData
      *
      * @param brokerName
      * @param topicConfig

@@ -300,6 +300,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         /**
          * 消息合法性检查
          * 如果没有TopicConfig，则创建TopicConfig
+         * 如果Topic创建失败（不允许自动创建或者其他原因），response设置失败，后面直接返回客户端
          */
         super.msgCheck(ctx, requestHeader, response);
 

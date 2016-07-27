@@ -24,6 +24,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.junit.Test;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -44,18 +45,25 @@ public class SimpleConsumerProducerTest {
     @Test
     public void producerConsumerTest() throws MQClientException, InterruptedException {
         final DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("S_fundmng_demo_producer");
-        DefaultMQProducer producer = new DefaultMQProducer("P_fundmng_demo_producer");
-        producer.setNamesrvAddr("127.0.0.1:9876");
+//        DefaultMQProducer producer = new DefaultMQProducer("P_fundmng_demo_producer");
+//        producer.setNamesrvAddr("127.0.0.1:9876");
         consumer.setNamesrvAddr("127.0.0.1:9876");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(TOPIC_TEST, null);
 
+        consumer.setMessageModel(MessageModel.CLUSTERING);
+
+        /**
+         *
+         */
+        consumer.setInstanceName("aaa");
+
         //获取当前Consumer运行信息
-        ConsumerRunningInfo runningInfo = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().consumerRunningInfo("S_fundmng_demo_producer");
+//        ConsumerRunningInfo runningInfo = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().consumerRunningInfo("S_fundmng_demo_producer");
 
         // 获取某个Topic下的统计信息
-        ConsumeStatus consumeStatus = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getConsumerStatsManager().consumeStatus("group", "topic");
+//        ConsumeStatus consumeStatus = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getConsumerStatsManager().consumeStatus("group", "topic");
 
         //consumer.setUnitMode(true);
 //        //暂停消费
@@ -66,7 +74,7 @@ public class SimpleConsumerProducerTest {
 
         //设置每个ProcessQueue中可以同时处理的最大消息数量，超过这个值将不再继续拉取消息
         //可以用来做流量控制，降低消费端负载
-        consumer.setPullThresholdForQueue(10000);
+//        consumer.setPullThresholdForQueue(10000);
 
         /**
          * 设置每次拉取消息的数据量，默认32
@@ -83,23 +91,23 @@ public class SimpleConsumerProducerTest {
         consumer.setConsumeMessageBatchMaxSize(1);
 
 
-        final AtomicLong lastReceivedMills = new AtomicLong(System.currentTimeMillis());
+//        final AtomicLong lastReceivedMills = new AtomicLong(System.currentTimeMillis());
 
-        final AtomicLong consumeTimes = new AtomicLong(0);
+//        final AtomicLong consumeTimes = new AtomicLong(0);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
                                                             final ConsumeConcurrentlyContext context) {
-                System.out.println("Received" + consumeTimes.incrementAndGet() + "messages !");
+                System.out.println("Received" + "messages !");
 
-                lastReceivedMills.set(System.currentTimeMillis());
+//                lastReceivedMills.set(System.currentTimeMillis());
 
                 /**
                  * 假如部分消息消费成功了怎么办？
                  * 可以通过设置ackIndex来标记从哪儿开始消费成功，从哪儿开始消费失败
                  * ackIndex后面的都是消费失败的，从0开始
                  */
-                context.setAckIndex(1);
+//                context.setAckIndex(1);
 
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
@@ -132,6 +140,6 @@ public class SimpleConsumerProducerTest {
         LockSupport.park();
 
         consumer.shutdown();
-        producer.shutdown();
+//        producer.shutdown();
     }
 }

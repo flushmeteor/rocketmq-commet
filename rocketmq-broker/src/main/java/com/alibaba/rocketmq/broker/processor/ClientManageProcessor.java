@@ -196,6 +196,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(
                     requestHeader.getConsumerGroup());
+
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {

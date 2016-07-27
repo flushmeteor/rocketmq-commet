@@ -38,6 +38,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
+ * 基于mmap
+ *
+ * PageCache
+ *
+ * https://www.thomas-krenn.com/en/wiki/Linux_Page_Cache_Basics
+ * http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory/
+ * http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/
+ * http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-files/
+ *
  * @author shijia.wxr
  */
 public class MapedFile extends ReferenceResource {
@@ -110,8 +119,34 @@ public class MapedFile extends ReferenceResource {
 
     /**
      * 清理ByteBuffer
+     * DirectByteBuffer
+     * <p>
+     * DirectByteBuffer如何清除?
+     * http://stackoverflow.com/questions/1854398/how-to-garbage-collect-a-direct-buffer-java
      *
-     * @param buffer
+        public static void destroyBuffer(Buffer buffer) {
+            if(buffer.isDirect()) {
+                try {
+
+                    //下面的att属性在JDK<=1.6的时候，叫做viewedBuffer
+                    // 在1.7中改成了att
+                    if(!buffer.getClass().getName().equals("java.nio.DirectByteBuffer")) {
+                        Field attField = buffer.getClass().getDeclaredField("att");
+                        attField.setAccessible(true);
+                        buffer = (Buffer) attField.get(buffer);
+                    }
+
+                    Method cleanerMethod = buffer.getClass().getMethod("cleaner");
+                    cleanerMethod.setAccessible(true);
+                    Object cleaner = cleanerMethod.invoke(buffer);
+                    Method cleanMethod = cleaner.getClass().getMethod("clean");
+                    cleanMethod.setAccessible(true);
+                    cleanMethod.invoke(cleaner);
+                } catch(Exception e) {
+                    throw new QuartetRuntimeException("Could not destroy direct buffer " + buffer, e);
+                }
+            }
+        }
      */
     public static void clean(final ByteBuffer buffer) {
         if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)

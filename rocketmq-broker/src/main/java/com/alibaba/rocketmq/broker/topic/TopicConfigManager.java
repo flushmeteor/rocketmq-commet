@@ -158,6 +158,14 @@ public class TopicConfigManager extends ConfigManager {
         return this.systemTopicList;
     }
 
+    /**
+     * 判断是否允许往当前Topic发送消息
+     * <p>
+     * 默认的Topic：TBW102 或者 Topic与当前集群的集群名字相同  就不允许
+     *
+     * @param topic
+     * @return
+     */
     public boolean isTopicCanSendMessage(final String topic) {
         boolean reservedWords =
                 topic.equals(MixAll.DEFAULT_TOPIC)
@@ -173,7 +181,8 @@ public class TopicConfigManager extends ConfigManager {
 
 
     /**
-     * 发送消息的同时，创建TopicConfig
+     * 创建TopicConfig
+     * 创建完会保存本地topicConfig信息，同时更新到NameServer
      *
      * @param topic
      * @param defaultTopic
@@ -293,10 +302,11 @@ public class TopicConfigManager extends ConfigManager {
 
     /**
      * 客户端发送消息回来 创建TopicConfig
-     * @param topic Topic
+     *
+     * @param topic                       Topic
      * @param clientDefaultTopicQueueNums 客户端默认的队列数
-     * @param perm config权限
-     * @param topicSysFlag flag
+     * @param perm                        config权限
+     * @param topicSysFlag                flag
      * @return
      */
     public TopicConfig createTopicInSendMessageBackMethod(//

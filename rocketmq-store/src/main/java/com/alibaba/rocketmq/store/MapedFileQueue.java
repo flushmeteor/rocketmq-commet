@@ -347,6 +347,11 @@ public class MapedFileQueue {
     /**
      * 删除过期文件
      *
+     * 删除多少个呢？
+     * 1、每次删除，最多删除DeleteFilesBatchMax个
+     * 2、如果没有达到第一条，那么把所有的过期的都删除，如果过期的数量超过了第一条，那么一次执行只删除DeleteFilesBatchMax个
+     * 3、如果没有过期的，但是磁盘不够了，那么一次执行也只删除DeleteFilesBatchMax个
+     *
      * @param expiredTime         过期时间
      * @param deleteFilesInterval 删除文件的时间间隔，即删除文件1之后歇会儿在删除文件2，歇多久就是这个参数
      * @param intervalForcibly
@@ -432,6 +437,9 @@ public class MapedFileQueue {
 
     /**
      * 根据Offset删除ConsumeQueue
+     *
+     * 删除哪些文件呢？
+     * 如果当前ConsumeQueue中保存的最大的Offset，小于commitlog中的最小offset，那么该ConsumeQueue就该被删除
      *
      * @param offset   commitlog的最小offset值
      * @param unitSize

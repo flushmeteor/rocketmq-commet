@@ -358,7 +358,10 @@ public class DefaultMessageStore implements MessageStore {
 
         /**
          * 当前不可写
-         * TODO:什么情况下不可写？
+         *
+         * 可以通过命令修改Broker为不可写
+         * 用于重启Borker
+         *
          */
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
@@ -581,7 +584,19 @@ public class DefaultMessageStore implements MessageStore {
                             /**
                              * 根据当前消息的Offset值和CommitLog的最大Offset值，
                              * 判断当前消息是否在磁盘上
-                             * 因为在磁盘上和不在磁盘上的传输数据量有不同限制，所以这里需要判断
+                             *
+                             * 因为基于mmap，数据需要缓存在PageCache，而PageCache空间有限
+                             * 当数据量超过了PageCache的大小的时候，就会发生缺页异常，然后去磁盘读取数据到PageCache
+                             * 同时替换掉一部分原来就存在于PageCache中的数据
+                             *
+                             * 这部分的实现都是操作系统层面的，程序上体现不出来
+                             *
+                             * 程序上的体现就是使用FileChannel.map
+                             * https://www.thomas-krenn.com/en/wiki/Linux_Page_Cache_Basics
+                             * http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory/
+                             * http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/
+                             * http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-files/
+                             *
                              */
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 

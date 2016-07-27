@@ -533,6 +533,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             /**
              * 当发送失败并且没有达到重试次数并且没有达到超时时间的时候，一直重试
+             *
+             * 如果一个TOpic只在一个BrokeName中创建，那么，当该BrokerName中的主节点挂掉之后，该Topic就发送失败了
+             * 如果在多个BrokerName中都创建了该Topic，那么当主节点挂掉，就能够自动转移
+             *
              */
             for (; times < timesTotal && (endTimestamp - beginTimestamp) < maxTimeout; times++) {
 

@@ -101,6 +101,9 @@ public class MessageStoreConfig {
 
     /**
      * 从内存中获取消息的最大比例
+     * TODO:
+     * 比例为什么是40%？？？这个值从哪儿的出来的呢？
+     *
      */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;

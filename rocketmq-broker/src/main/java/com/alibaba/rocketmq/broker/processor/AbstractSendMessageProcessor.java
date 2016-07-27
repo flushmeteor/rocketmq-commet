@@ -193,6 +193,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
         /**
          * 如果当前Topic不允许发送消息，返回！
+         * topic不能是保留字（默认Topic或者与集群名字相同）
          */
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
@@ -209,6 +210,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         /**
          * 如果没有找到Topic对应配置,表示之前没有创建过Topic，需要新创建,如果已经配置了，直接返回
+         *
          */
         if (null == topicConfig) {
             int topicSysFlag = 0;
@@ -237,7 +239,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
             /**
-             * 如果创建失败，同时Topic是重试topic，则重新发送并创建TopicConfig
+             * 如果创建失败，同时Topic是重试topic
              */
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

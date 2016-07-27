@@ -15,6 +15,8 @@
  * limitations under the License.
  * <p>
  * $Id: BrokerData.java 1835 2013-05-16 02:00:50Z shijia.wxr $
+ * <p>
+ * $Id: BrokerData.java 1835 2013-05-16 02:00:50Z shijia.wxr $
  */
 
 /**
@@ -28,6 +30,10 @@ import java.util.HashMap;
 
 
 /**
+ * 集群-->BrokerData-->Broker
+ *
+ * BrokerData表示集群中的某个BrokerName下的机器信息
+ *
  * @author shijia.wxr
  */
 public class BrokerData implements Comparable<BrokerData> {

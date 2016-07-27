@@ -1,3 +1,4 @@
+import com.alibaba.rocketmq.store.MapedFile;
 import org.junit.Test;
 
 import java.io.File;
@@ -67,12 +68,7 @@ public class ByteBufferTest {
         RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
         MappedByteBuffer mappedByteBuffer = accessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 1024);
 
-        try {
-            Method method = mappedByteBuffer.getClass().getMethod("viewedBuffer");
-            System.out.println(method);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
+        MapedFile.clean(mappedByteBuffer);
 
     }
 

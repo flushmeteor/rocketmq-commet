@@ -112,6 +112,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
+    /**
+     * Broker注册
+     *
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand registerBrokerWithFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
@@ -128,6 +136,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestatmp(0);
         }
 
+        /**
+         * 更新RouteInfo
+         */
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
                 requestHeader.getClusterName(), // 1
                 requestHeader.getBrokerAddr(), // 2

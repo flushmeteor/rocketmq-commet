@@ -24,6 +24,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
+ * Topic发送配置信息
+ * <p>
+ * 一个Topic对应一个TopicPublishInfo
+ * <p>
+ * 一个TopicPublishInfo中有多个MessageQueue
+ * <p>
+ * MessageQueue可以是一个Broker中对应的Queue，也可以是多台Broker，取决于TOpic的创建
+ * 如果Topic在多个Broker中都创建了，那么就这些Queue就包含多台Broker中的Queue
+ *
  * @author shijia.wxr
  */
 public class TopicPublishInfo {
@@ -81,7 +90,6 @@ public class TopicPublishInfo {
     /**
      * 根据上次发送的BrokerName，选择一个新的MessageQueue
      * 如果只有一个brokerName，那么返回null
-     *
      *
      * @param lastBrokerName
      * @return

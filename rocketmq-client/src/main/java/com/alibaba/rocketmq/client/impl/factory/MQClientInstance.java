@@ -989,6 +989,9 @@ public class MQClientInstance {
 
     /**
      * 注册消费者，消费者信息保存到本地
+     * <p>
+     * 如果一个消费组，在一个JVM中，只允许一个消费者
+     * 多个启动失败
      *
      * @param group
      * @param consumer
