@@ -1252,6 +1252,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      * 根据情况增加或者减少核心线程数
      */
     public void adjustThreadPool() {
+
+        /**
+         * 获取当前所有ProcessQueue中AccTotal
+         * TODO:
+         */
         long computeAccTotal = this.computeAccumulationTotal();
 
         long adjustThreadPoolNumsThreshold = this.defaultMQPushConsumer.getAdjustThreadPoolNumsThreshold();

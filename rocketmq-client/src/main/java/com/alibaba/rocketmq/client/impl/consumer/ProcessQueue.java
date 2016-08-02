@@ -125,7 +125,9 @@ public class ProcessQueue {
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
                         /**
-                         * TODO:需要研究一下Message中存储的数据格式
+                         * commitlog offset
+                         * 减去
+                         * 消息对应MessageQueue的Offset
                          *
                          */
                         long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();

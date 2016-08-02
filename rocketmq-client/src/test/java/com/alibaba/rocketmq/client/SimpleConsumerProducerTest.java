@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -54,6 +55,33 @@ public class SimpleConsumerProducerTest {
 
         consumer.setMessageModel(MessageModel.CLUSTERING);
 
+
+//        consumer.setConsumeThreadMax();
+//        consumer.setConsumeThreadMin();
+//        consumer.setConsumeTimestamp();
+//        consumer.setClientCallbackExecutorThreads();
+//        consumer.setAdjustThreadPoolNumsThreshold();
+//
+//        consumer.setPostSubscriptionWhenPull();
+//
+//        consumer.setConsumeMessageBatchMaxSize();
+//        consumer.setConsumeConcurrentlyMaxSpan();
+//
+//        consumer.setPullBatchSize();
+//        consumer.setPullInterval();
+//        consumer.setPullThresholdForQueue();
+//
+//
+//        consumer.setSubscription();
+//
+////        consumer.setClientIP();
+//
+//
+//        consumer.setPollNameServerInteval();
+//        consumer.setHeartbeatBrokerInterval();
+//        consumer.setPersistConsumerOffsetInterval();
+
+
         /**
          * InstanceName 可以用来区分同一个JVM中多个consumerGroup和Topic相同的消费者
          * 因为ClientID的设置是IP@InstanceName
@@ -66,6 +94,7 @@ public class SimpleConsumerProducerTest {
         // 获取某个Topic下的统计信息
 //        ConsumeStatus consumeStatus = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getConsumerStatsManager().consumeStatus("group", "topic");
 
+
         //consumer.setUnitMode(true);
 //        //暂停消费
 //        consumer.suspend();
@@ -75,7 +104,7 @@ public class SimpleConsumerProducerTest {
 
         //设置每个ProcessQueue中可以同时处理的最大消息数量，超过这个值将不再继续拉取消息
         //可以用来做流量控制，降低消费端负载
-//        consumer.setPullThresholdForQueue(10000);
+        consumer.setPullThresholdForQueue(10000);
 
         /**
          * 设置每次拉取消息的数据量，默认32
@@ -128,19 +157,41 @@ public class SimpleConsumerProducerTest {
 //        }
 
 
-        consumer.setPullInterval(5 * 1000L);
+//        consumer.setAllocateMessageQueueStrategy();
+
+
+//        consumer.setPullInterval(5 * 1000L);
         consumer.start();
 
-        Thread.sleep(15 * 1000);
 
-        consumer.suspend();
+        Thread.sleep(2 * 1000);
 
-        Thread.sleep(15 * 1000);
-        consumer.resume();
+        System.out.println("----------------------");
+
+        ConsumerRunningInfo runningInfo = consumer.getDefaultMQPushConsumerImpl().consumerRunningInfo();
+
+
+        // 获取某个Topic下的统计信息
+        ConsumeStatus consumeStatus = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getConsumerStatsManager().consumeStatus("group", "topic");
+
+
+        System.out.println(runningInfo.formatString());
+        System.out.println("------------------------------------------");
+        System.out.println(JSON.toJSONString(consumeStatus));
+
 
         LockSupport.park();
 
-        consumer.shutdown();
+
+//
+//        consumer.suspend();
+//
+//        Thread.sleep(15 * 1000);
+//        consumer.resume();
+//
+//        LockSupport.park();
+//
+//        consumer.shutdown();
 //        producer.shutdown();
     }
 }

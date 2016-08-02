@@ -33,7 +33,7 @@ public class DoubleConsumerTest {
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
                                                             final ConsumeConcurrentlyContext context) {
-                System.out.println("Consumer1:" + JSON.toJSONString(msgs));
+                System.out.println("Consumer1:" + msgs.size());
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
@@ -45,13 +45,15 @@ public class DoubleConsumerTest {
         consumer2.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
                                                             final ConsumeConcurrentlyContext context) {
-                System.out.println("Consumer2:" + JSON.toJSONString(msgs));
+                System.out.println("Consumer1:" + msgs.size());
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
 
         consumer2.start();
         System.out.println("Consumer2 started");
+
+        LockSupport.park();
     }
 
 
@@ -120,6 +122,25 @@ public class DoubleConsumerTest {
 
         return consumer;
 
+    }
+
+
+    @Test
+    public void testStartupTwice() throws MQClientException {
+        DefaultMQPushConsumer consumer = getConsumer("S_fundmng_demo_producer", "TopicTest-fundmng");
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+            public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
+                                                            final ConsumeConcurrentlyContext context) {
+                System.out.println("Consumer1:" + JSON.toJSONString(msgs));
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        consumer.start();
+        System.out.println("start 1");
+        consumer.start();
+        System.out.println("start 2");
+
+        LockSupport.park();
     }
 
 }

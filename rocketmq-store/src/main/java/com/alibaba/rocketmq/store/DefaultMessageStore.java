@@ -598,6 +598,18 @@ public class DefaultMessageStore implements MessageStore {
                              * http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-files/
                              *
                              */
+
+                            /**
+                             * 感觉这个40是一个经验值，是可以配置的，默认是40，
+                             * 在刷盘的地方并没有说达到内存的40%就刷盘，
+                             * 而是刷盘默认最少一次刷16kb(一页4kb，默认一次至少刷4页)，
+                             * 这个40%我看到两个地方有用到，第一个是消费端来消费的时候，
+                             * 会判断当前消费的offset到最后刷盘的offset是否超过了内存40%,如果超过了，
+                             * 则建议从slave进行拉去消息，这里感觉像是对master的一种保护措施，避免超过40%的消息，都来这里消费，导致内存消耗问题，
+                             * 第二个地方是在消费端注册的时候，
+                             * 是当订阅组不存在的时候，并且刷盘数据为0的时候，告诉消费端来内存获取，
+                             * 至于为什么是40%,这个应该只是默认值，并不是一定要这样，这个值是可以配置的，但是这个值不影响刷盘
+                             */
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
                             /**
@@ -607,6 +619,7 @@ public class DefaultMessageStore implements MessageStore {
                             if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(), getResult.getMessageCount(), isInDisk)) {
                                 break;
                             }
+
 
                             /**
                              * 标签过滤
