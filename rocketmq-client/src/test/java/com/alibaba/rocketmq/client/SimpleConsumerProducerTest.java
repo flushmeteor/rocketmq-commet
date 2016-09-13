@@ -17,6 +17,9 @@
 
 package com.alibaba.rocketmq.client;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +29,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.spi.HttpServerProvider;
 import org.junit.Test;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -43,12 +50,29 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class SimpleConsumerProducerTest {
     private static final String TOPIC_TEST = "TopicTest-fundmng";
 
+
     @Test
-    public void producerConsumerTest() throws MQClientException, InterruptedException {
+    public void producerConsumerTest() throws MQClientException, InterruptedException, IOException {
+
+        HttpServerProvider provider = HttpServerProvider.provider();
+        HttpServer server = provider.createHttpServer(new InetSocketAddress("127.0.0.1", 8080), 8080);
+        server.createContext("/rocketmq/nsaddr", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange httpExchange) throws IOException {
+                httpExchange.sendResponseHeaders(200, "127.0.0.1:9876".getBytes().length);
+                OutputStream os = httpExchange.getResponseBody();
+                os.write("127.0.0.1:9876".getBytes());
+                os.close();
+            }
+        });
+
+        server.start();
+
+
         final DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("S_fundmng_demo_producer");
 //        DefaultMQProducer producer = new DefaultMQProducer("P_fundmng_demo_producer");
 //        producer.setNamesrvAddr("127.0.0.1:9876");
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+//        consumer.setNamesrvAddr("10.255.52.16:9876");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(TOPIC_TEST, null);
@@ -165,6 +189,9 @@ public class SimpleConsumerProducerTest {
 
 
         Thread.sleep(2 * 1000);
+
+        System.out.println(consumer.getNamesrvAddr());
+
 
         System.out.println("----------------------");
 

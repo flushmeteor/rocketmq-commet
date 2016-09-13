@@ -184,6 +184,9 @@ public class MQClientInstance {
                      */
                     // If not specified,looking address from name server
                     if (null == this.clientConfig.getNamesrvAddr()) {
+
+                        //这里设置了clientConfig的namesr字段,但是没有返回去设置consumer的,所以启动之后
+                        //如果通过consumer.getNamesrvaddr()获取是获取不到的
                         this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                     }
 
@@ -1257,6 +1260,13 @@ public class MQClientInstance {
     }
 
 
+    /**
+     * 根据TOPIC和ConsumerGroup获取消费者ID列表
+     *
+     * @param topic
+     * @param group
+     * @return
+     */
     public List<String> findConsumerIdList(final String topic, final String group) {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {

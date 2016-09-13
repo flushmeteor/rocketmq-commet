@@ -1255,7 +1255,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         /**
          * 获取当前所有ProcessQueue中AccTotal
-         * TODO:
+         * 如果当前ProcessQueue中累积的acc过多,那么就根据情况增加核心线程数,如果不多,则减少一些
          */
         long computeAccTotal = this.computeAccumulationTotal();
 
