@@ -147,6 +147,7 @@ public class ConsumerStatsManager {
     public ConsumeStatus consumeStatus(final String group, final String topic) {
         ConsumeStatus cs = new ConsumeStatus();
         {
+            //平均拉取消息耗时(ms)
             StatsSnapshot ss = this.getPullRT(group, topic);
             if (ss != null) {
                 cs.setPullRT(ss.getAvgpt());
@@ -154,6 +155,8 @@ public class ConsumerStatsManager {
         }
 
         {
+
+            //拉取消息速度(tps)
             StatsSnapshot ss = this.getPullTPS(group, topic);
             if (ss != null) {
                 cs.setPullTPS(ss.getTps());
@@ -161,6 +164,7 @@ public class ConsumerStatsManager {
         }
 
         {
+            //消息平均消费耗时(ms)
             StatsSnapshot ss = this.getConsumeRT(group, topic);
             if (ss != null) {
                 cs.setConsumeRT(ss.getAvgpt());

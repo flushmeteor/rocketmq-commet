@@ -75,7 +75,7 @@ public class SimpleConsumerProducerTest {
 //        consumer.setNamesrvAddr("10.255.52.16:9876");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
-        consumer.subscribe(TOPIC_TEST, null);
+        consumer.subscribe(TOPIC_TEST, "aaa||asdfasdf");
 
         consumer.setMessageModel(MessageModel.CLUSTERING);
 
